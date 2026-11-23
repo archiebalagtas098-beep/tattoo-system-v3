@@ -275,7 +275,7 @@ const Booking =
     mongoose.models.Booking ||
     mongoose.model("Booking", bookingSchema, "appointments");
 
-const bookingUploadDir = path.join(__dirname, "public", "uploads");
+const bookingUploadDir = path.join(__dirname, "Storage", "uploads");
 
 fs.mkdirSync(bookingUploadDir, { recursive: true });
 

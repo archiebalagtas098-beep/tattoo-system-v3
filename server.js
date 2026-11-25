@@ -30,26 +30,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ======================================================
-// API URL  (galing sa vercel.json "env" o sa .env / Vercel dashboard)
-// Gamitin kahit saan:  process.env.API_URL  o  API_URL
-// Naka-lagay din sa app.locals kaya pwede sa EJS:  <%= API_URL %>
-// ======================================================
-
-const API_URL = process.env.API_URL || "";
-
-app.locals.API_URL = API_URL;
-
-// Naka-deploy ba sa Vercel? (Vercel ang nagse-set ng VERCEL=1)
-const IS_VERCEL = Boolean(process.env.VERCEL);
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Kung naka-deploy sa likod ng proxy (Nginx, Render, Railway, etc.), ilagay
 // sa .env:  TRUST_PROXY=1   para tama ang IP na nakikita ng rate limiter.
-// Sa Vercel, laging naka-proxy kaya naka-on na ito by default.
-if (process.env.TRUST_PROXY || IS_VERCEL) {
+if (process.env.TRUST_PROXY) {
     app.set("trust proxy", Number(process.env.TRUST_PROXY) || 1);
 }
 
@@ -75,8 +61,7 @@ app.use(
 // naka-sign ang mga ito gamit ang COOKIE_SECRET - kapag binago ng user,
 // hindi na valid at hindi siya makaka-login.
 //
-// Ilagay sa .env (o sa Vercel dashboard):
-//   COOKIE_SECRET=isang-mahaba-at-random-na-text
+// Ilagay sa .env:   COOKIE_SECRET=isang-mahaba-at-random-na-text
 // ======================================================
 
 let COOKIE_SECRET = process.env.COOKIE_SECRET;
@@ -290,12 +275,7 @@ const Booking =
     mongoose.models.Booking ||
     mongoose.model("Booking", bookingSchema, "appointments");
 
-// NOTE: Read-only ang filesystem ng Vercel maliban sa /tmp, at pansamantala
-// lang ang /tmp. Para sa permanenteng uploads, gumamit ng Cloudinary, S3
-// o Vercel Blob.
-const bookingUploadDir = IS_VERCEL
-    ? path.join("/tmp", "uploads")
-    : path.join(__dirname, "Storage", "uploads");
+const bookingUploadDir = path.join(__dirname, "Storage", "uploads");
 
 fs.mkdirSync(bookingUploadDir, { recursive: true });
 
@@ -892,9 +872,9 @@ app.use("/", pageRoutes);
 // Ang existing na admin password ay hindi binabago kung walang
 // ADMIN_PASSWORD sa .env.
 //
-// Sa .env, lagyan ng quotes ang password kung may "#":
+// Sa .env, lagyan ng quotes ang password dahil may "#":
 //   ADMIN_USERNAME=Totats
-//   ADMIN_PASSWORD="your-strong-password-here"
+//   ADMIN_PASSWORD="TotatsSkinArtTattoo12@#;"
 // ======================================================
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "Totats";
@@ -1385,7 +1365,6 @@ app.get('/api/appointments/admin/all', requireRoles(ADMIN_ROLES), async (req, re
 // ======================================================
 // OPEN IMAGE IN PHOTOSHOP / FXPRINT
 // Works because the server and the browser run on the same PC.
-// NOTE: Hindi ito gagana sa Vercel - local PC lang.
 // ======================================================
 
 const OPEN_IMAGE_APPS = {
@@ -1474,18 +1453,4 @@ const startServer = async () => {
     }
 };
 
-// ======================================================
-// START
-// Local  -> app.listen() gaya ng dati.
-// Vercel -> walang listen(); ini-export ang app bilang serverless handler.
-// ======================================================
-
-if (IS_VERCEL) {
-    connectDB()
-        .then(initializeAdmin)
-        .catch((error) => console.error("Startup error:", error));
-} else {
-    startServer();
-}
-
-export default app;
+startServer();
